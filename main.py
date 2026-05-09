@@ -1,8 +1,12 @@
 import logging
+import time
 from app.adapters.agent_mqtt_adapter import AgentMQTTAdapter
 from app.adapters.hub_http_adapter import HubHttpAdapter
 from app.adapters.hub_mqtt_adapter import HubMqttAdapter
+from app.adapters.universal_sensor_mqtt_adapter import UniversalSensorMQTTAdapter
+from app.usecases.sensor_generator import SyntheticSensorGenerator
 from config import (
+    ENABLE_SYNTHETIC_SENSOR_GENERATOR,
     MQTT_BROKER_HOST,
     MQTT_BROKER_PORT,
     MQTT_TOPIC,
@@ -10,6 +14,9 @@ from config import (
     HUB_MQTT_BROKER_HOST,
     HUB_MQTT_BROKER_PORT,
     HUB_MQTT_TOPIC,
+    SENSOR_DATA_TOPIC,
+    SENSOR_GENERATOR_INTERVAL_SEC,
+    SENSOR_READINGS_TOPIC,
 )
 
 if __name__ == "__main__":
@@ -38,14 +45,32 @@ if __name__ == "__main__":
         topic=MQTT_TOPIC,
         hub_gateway=hub_adapter,
     )
+    universal_sensor_adapter = UniversalSensorMQTTAdapter(
+        broker_host=MQTT_BROKER_HOST,
+        broker_port=MQTT_BROKER_PORT,
+        sensor_data_topic=SENSOR_DATA_TOPIC,
+        sensor_readings_topic=SENSOR_READINGS_TOPIC,
+    )
+    synthetic_sensor_generator = SyntheticSensorGenerator(
+        broker_host=MQTT_BROKER_HOST,
+        broker_port=MQTT_BROKER_PORT,
+        topic=SENSOR_DATA_TOPIC,
+        interval_sec=SENSOR_GENERATOR_INTERVAL_SEC,
+        enabled=ENABLE_SYNTHETIC_SENSOR_GENERATOR,
+    )
     try:
         # Connect to the MQTT broker and start listening for messages
         agent_adapter.connect()
         agent_adapter.start()
+        universal_sensor_adapter.connect()
+        universal_sensor_adapter.start()
+        synthetic_sensor_generator.start()
         # Keep the system running indefinitely (you can add other logic as needed)
         while True:
-            pass
+            time.sleep(1)
     except KeyboardInterrupt:
         # Stop the MQTT adapter and exit gracefully if interrupted by the user
+        synthetic_sensor_generator.stop()
+        universal_sensor_adapter.stop()
         agent_adapter.stop()
         logging.info("System stopped.")

@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SensorType(str, Enum):
@@ -56,6 +56,16 @@ class ParkingPayload(SensorPayload):
     barrier_state: Literal["open", "closed", "unknown"] = "unknown"
     queue_length: int = 0
 
+    @model_validator(mode="after")
+    def validate_capacity(self):
+        if self.total_slots < 0 or self.occupied_slots < 0 or self.free_slots < 0:
+            raise ValueError("Parking capacity values must be non-negative.")
+        if self.occupied_slots + self.free_slots != self.total_slots:
+            raise ValueError("occupied_slots + free_slots must equal total_slots.")
+        if not 0.0 <= self.occupancy_rate <= 1.0:
+            raise ValueError("occupancy_rate must be between 0.0 and 1.0.")
+        return self
+
 
 class TrafficLightPayload(SensorPayload):
     current_phase: Literal["red", "yellow", "green", "blinking"]
@@ -63,6 +73,14 @@ class TrafficLightPayload(SensorPayload):
     cycle_time_sec: int
     pedestrian_request: bool = False
     fault_detected: bool = False
+
+    @model_validator(mode="after")
+    def validate_cycle(self):
+        if self.remaining_time_sec < 0 or self.cycle_time_sec <= 0:
+            raise ValueError("Traffic light timing values must be positive.")
+        if self.remaining_time_sec > self.cycle_time_sec:
+            raise ValueError("remaining_time_sec cannot exceed cycle_time_sec.")
+        return self
 
 
 class WeatherPayload(SensorPayload):

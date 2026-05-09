@@ -39,11 +39,15 @@ services:
       MQTT_BROKER_HOST: "mqtt"
       MQTT_BROKER_PORT: 1883
       MQTT_TOPIC: "agent_data_topic"
+      SENSOR_DATA_TOPIC: "sensor_data_topic"
+      SENSOR_READINGS_TOPIC: "sensor_readings_topic"
+      ENABLE_SYNTHETIC_SENSOR_GENERATOR: "true"
+      SENSOR_GENERATOR_INTERVAL_SEC: 2
       HUB_HOST: "store"
       HUB_PORT: 8000
       HUB_MQTT_BROKER_HOST: "mqtt"
       HUB_MQTT_BROKER_PORT: 1883
-      HUB_MQTT_TOPIC: "processed_data_topic"
+      HUB_MQTT_TOPIC: "processed_agent_data_topic"
     networks:
       mqtt_network:
       edge_hub:

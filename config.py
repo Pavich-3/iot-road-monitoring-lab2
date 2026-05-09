@@ -8,6 +8,13 @@ def try_parse_int(value: str):
         return None
 
 
+def try_parse_float(value: str):
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
 # Configuration for agent MQTT
 MQTT_BROKER_HOST = os.environ.get("MQTT_BROKER_HOST") or "localhost"
 MQTT_BROKER_PORT = try_parse_int(os.environ.get("MQTT_BROKER_PORT")) or 1883
@@ -36,3 +43,13 @@ POSTGRES_DB = os.environ.get("POSTGRES_DB") or "test_db"
 
 STORE_HOST = os.environ.get("STORE_HOST") or "0.0.0.0"
 STORE_PORT = try_parse_int(os.environ.get("STORE_PORT")) or 8000
+
+# Configuration for universal sensor flow
+SENSOR_DATA_TOPIC = os.environ.get("SENSOR_DATA_TOPIC") or "sensor_data_topic"
+SENSOR_READINGS_TOPIC = os.environ.get("SENSOR_READINGS_TOPIC") or "sensor_readings_topic"
+ENABLE_SYNTHETIC_SENSOR_GENERATOR = (
+    os.environ.get("ENABLE_SYNTHETIC_SENSOR_GENERATOR", "true").lower() == "true"
+)
+SENSOR_GENERATOR_INTERVAL_SEC = (
+    try_parse_float(os.environ.get("SENSOR_GENERATOR_INTERVAL_SEC")) or 2.0
+)
