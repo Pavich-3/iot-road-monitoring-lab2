@@ -1,0 +1,82 @@
+version: "3.9"
+# name: "road_vision"
+services:
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: mqtt
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    ports:
+      - "1883:1883"
+      - "19001:9001"
+    networks:
+      - mqtt_network
+
+  postgres_db:
+    image: postgres:16
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: test_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/structure.sql:/docker-entrypoint-initdb.d/structure.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - db_network
+
+  edge:
+    container_name: edge
+    build: ../
+    depends_on:
+      - mqtt
+    environment:
+      MQTT_BROKER_HOST: "mqtt"
+      MQTT_BROKER_PORT: 1883
+      MQTT_TOPIC: "agent_data_topic"
+      HUB_HOST: "store"
+      HUB_PORT: 8000
+      HUB_MQTT_BROKER_HOST: "mqtt"
+      HUB_MQTT_BROKER_PORT: 1883
+      HUB_MQTT_TOPIC: "processed_data_topic"
+    networks:
+      mqtt_network:
+      edge_hub:
+
+  store:
+    container_name: store
+    build: ../
+    command: ["python", "store_main.py"]
+    depends_on:
+      - postgres_db
+    environment:
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "pass"
+      POSTGRES_DB: "test_db"
+      POSTGRES_HOST: "postgres_db"
+      POSTGRES_PORT: 5432
+      STORE_PORT: 8000
+    ports:
+      - "8000:8000"
+    networks:
+      db_network:
+      edge_hub:
+
+
+networks:
+  mqtt_network:
+  db_network:
+  edge_hub:
+  hub:
+  hub_store:
+  hub_redis:
+
+
+volumes:
+  postgres_data:
+  pgadmin-data:
