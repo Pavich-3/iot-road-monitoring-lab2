@@ -38,22 +38,22 @@ processed_agent_data = Table(
 sensor_readings = Table(
     "sensor_readings",
     metadata,
-    Column("id", BigInteger, primary_key=True, index=True),
-    Column("sensor_id", String, nullable=False),
-    Column("sensor_type", String, nullable=False),
-    Column("device_id", String, nullable=False),
-    Column("schema_version", String, nullable=False),
-    Column("latitude", Float, nullable=False),
-    Column("longitude", Float, nullable=False),
-    Column("altitude_m", Float),
-    Column("area", String),
-    Column("road_segment_id", String),
-    Column("status", String),
-    Column("payload", JSONB, nullable=False),
-    Column("metadata", JSONB, nullable=False),
-    Column("recorded_at", DateTime(timezone=True), nullable=False),
-    Column("received_at", DateTime(timezone=True), nullable=False),
-    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("id", BigInteger, primary_key=True, index=True),  # Universal table primary key.
+    Column("sensor_id", String, nullable=False),  # Indexed logical identifier for querying one sensor.
+    Column("sensor_type", String, nullable=False),  # Sensor family used for filtering different domains.
+    Column("device_id", String, nullable=False),  # Physical source device identifier.
+    Column("schema_version", String, nullable=False),  # Schema version stored with every message.
+    Column("latitude", Float, nullable=False),  # Flattened location for quick spatial filtering.
+    Column("longitude", Float, nullable=False),  # Flattened location for quick spatial filtering.
+    Column("altitude_m", Float),  # Optional flattened altitude.
+    Column("area", String),  # Optional flattened area label.
+    Column("road_segment_id", String),  # Optional flattened road/intersection reference.
+    Column("status", String),  # Flattened device status for monitoring.
+    Column("payload", JSONB, nullable=False),  # Domain-specific measurement block.
+    Column("metadata", JSONB, nullable=False),  # Full technical metadata block.
+    Column("recorded_at", DateTime(timezone=True), nullable=False),  # Original measurement time.
+    Column("received_at", DateTime(timezone=True), nullable=False),  # Store receive time.
+    Column("created_at", DateTime(timezone=True), nullable=False),  # DB insertion time.
 )
 
 
@@ -99,7 +99,8 @@ sensor_message_batch_adapter = TypeAdapter(list[SensorMessage])
 
 @app.on_event("startup")
 def create_tables() -> None:
-    metadata.create_all(engine)
+    # create_all is enough for the lab because we only need lightweight bootstrapping.
+    metadata.create_all(engine)  # Create tables automatically for the lab deployment.
 
 
 @app.websocket("/ws/")
@@ -147,54 +148,54 @@ async def send_sensor_reading_to_subscribers(data: dict[str, Any]) -> None:
 
 def processed_agent_data_row_to_dict(row) -> dict[str, Any]:
     return {
-        "id": row.id,
-        "road_state": row.road_state,
-        "x": row.x,
-        "y": row.y,
-        "z": row.z,
-        "latitude": row.latitude,
-        "longitude": row.longitude,
-        "timestamp": row.timestamp.isoformat() if row.timestamp else None,
+        "id": row.id,  # Legacy row id.
+        "road_state": row.road_state,  # Legacy classified road condition.
+        "x": row.x,  # Legacy X axis value.
+        "y": row.y,  # Legacy Y axis value.
+        "z": row.z,  # Legacy Z axis value.
+        "latitude": row.latitude,  # Legacy latitude.
+        "longitude": row.longitude,  # Legacy longitude.
+        "timestamp": row.timestamp.isoformat() if row.timestamp else None,  # ISO-8601 response serialization.
     }
 
 
 def sensor_reading_row_to_dict(row) -> dict[str, Any]:
-    row_data = row._mapping
+    row_data = row._mapping  # Access SQLAlchemy Row as a mapping for readable key-based extraction.
     return {
-        "id": row_data["id"],
-        "sensor_id": row_data["sensor_id"],
-        "sensor_type": row_data["sensor_type"],
-        "device_id": row_data["device_id"],
-        "schema_version": row_data["schema_version"],
-        "latitude": row_data["latitude"],
-        "longitude": row_data["longitude"],
-        "altitude_m": row_data["altitude_m"],
-        "area": row_data["area"],
-        "road_segment_id": row_data["road_segment_id"],
-        "status": row_data["status"],
-        "payload": row_data["payload"],
-        "metadata": row_data["metadata"],
-        "recorded_at": row_data["recorded_at"].isoformat() if row_data["recorded_at"] else None,
-        "received_at": row_data["received_at"].isoformat() if row_data["received_at"] else None,
-        "created_at": row_data["created_at"].isoformat() if row_data["created_at"] else None,
+        "id": row_data["id"],  # Universal row id.
+        "sensor_id": row_data["sensor_id"],  # Logical sensor identifier.
+        "sensor_type": row_data["sensor_type"],  # Sensor family value.
+        "device_id": row_data["device_id"],  # Physical source device identifier.
+        "schema_version": row_data["schema_version"],  # Stored schema version.
+        "latitude": row_data["latitude"],  # Flattened latitude.
+        "longitude": row_data["longitude"],  # Flattened longitude.
+        "altitude_m": row_data["altitude_m"],  # Flattened altitude.
+        "area": row_data["area"],  # Flattened area.
+        "road_segment_id": row_data["road_segment_id"],  # Flattened transport reference.
+        "status": row_data["status"],  # Flattened status.
+        "payload": row_data["payload"],  # JSONB payload block.
+        "metadata": row_data["metadata"],  # JSONB metadata block.
+        "recorded_at": row_data["recorded_at"].isoformat() if row_data["recorded_at"] else None,  # API-safe timestamp.
+        "received_at": row_data["received_at"].isoformat() if row_data["received_at"] else None,  # API-safe timestamp.
+        "created_at": row_data["created_at"].isoformat() if row_data["created_at"] else None,  # API-safe timestamp.
     }
 
 
 def sensor_message_to_insert_values(sensor: SensorMessage) -> dict[str, Any]:
     return {
-        "sensor_id": sensor.metadata.sensor_id,
-        "sensor_type": sensor.sensor_type.value,
-        "device_id": sensor.metadata.device_id,
-        "schema_version": sensor.schema_version,
-        "latitude": sensor.location.latitude,
-        "longitude": sensor.location.longitude,
-        "altitude_m": sensor.location.altitude_m,
-        "area": sensor.location.area,
-        "road_segment_id": sensor.location.road_segment_id,
-        "status": sensor.metadata.status,
-        "payload": sensor.payload.model_dump(mode="json"),
-        "metadata": sensor.metadata.model_dump(mode="json"),
-        "recorded_at": sensor.timestamp,
+        "sensor_id": sensor.metadata.sensor_id,  # Flattened indexed field.
+        "sensor_type": sensor.sensor_type.value,  # Flattened indexed field.
+        "device_id": sensor.metadata.device_id,  # Flattened indexed field.
+        "schema_version": sensor.schema_version,  # Persist schema version for compatibility.
+        "latitude": sensor.location.latitude,  # Flattened location field.
+        "longitude": sensor.location.longitude,  # Flattened location field.
+        "altitude_m": sensor.location.altitude_m,  # Flattened optional field.
+        "area": sensor.location.area,  # Flattened optional field.
+        "road_segment_id": sensor.location.road_segment_id,  # Flattened optional field.
+        "status": sensor.metadata.status,  # Flattened operational state.
+        "payload": sensor.payload.model_dump(mode="json"),  # Keep payload flexible in JSONB.
+        "metadata": sensor.metadata.model_dump(mode="json"),  # Keep full metadata in JSONB.
+        "recorded_at": sensor.timestamp,  # Original sensor timestamp.
     }
 
 
@@ -292,13 +293,13 @@ def delete_processed_agent_data(processed_agent_data_id: int):
 
 @app.post("/sensor_readings", response_model=SensorReadingInDB)
 async def create_sensor_reading(sensor_reading_raw: dict[str, Any] = Body(...)):
-    sensor_reading = sensor_message_adapter.validate_python(sensor_reading_raw)
+    sensor_reading = sensor_message_adapter.validate_python(sensor_reading_raw)  # Validate single SensorMessage before insert.
     with engine.begin() as connection:
         stmt = (
             insert(sensor_readings)
-            .values(**sensor_message_to_insert_values(sensor_reading))
-            .returning(sensor_readings)
-        )
+                .values(**sensor_message_to_insert_values(sensor_reading))  # Convert message into DB insert shape.
+                .returning(sensor_readings)  # Ask PostgreSQL to return the inserted row.
+            )
         row = connection.execute(stmt).fetchone()
 
     created_item = sensor_reading_row_to_dict(row)
@@ -308,7 +309,7 @@ async def create_sensor_reading(sensor_reading_raw: dict[str, Any] = Body(...)):
 
 @app.post("/sensor_readings/batch", response_model=list[SensorReadingInDB])
 async def create_sensor_readings_batch(sensor_readings_batch_raw: list[dict[str, Any]] = Body(...)):
-    sensor_readings_batch = sensor_message_batch_adapter.validate_python(sensor_readings_batch_raw)
+    sensor_readings_batch = sensor_message_batch_adapter.validate_python(sensor_readings_batch_raw)  # Validate whole batch before writing.
     if not sensor_readings_batch:
         return []
 
@@ -317,8 +318,8 @@ async def create_sensor_readings_batch(sensor_readings_batch_raw: list[dict[str,
         for item in sensor_readings_batch:
             stmt = (
                 insert(sensor_readings)
-                .values(**sensor_message_to_insert_values(item))
-                .returning(sensor_readings)
+                .values(**sensor_message_to_insert_values(item))  # Prepare one insert per validated message.
+                .returning(sensor_readings)  # Return inserted row for response/WebSocket.
             )
             created_rows.append(connection.execute(stmt).fetchone())
 
