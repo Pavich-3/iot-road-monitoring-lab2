@@ -11,6 +11,7 @@ class SensorType(str, Enum):
     ROAD_SURFACE = "road_surface"
     PARKING = "parking"
     TRAFFIC_LIGHT = "traffic_light"
+    ENVIRONMENTAL = "environmental"
     WEATHER = "weather"
     SMART_GRID = "smart_grid"
     AIR_QUALITY = "air_quality"
@@ -69,6 +70,7 @@ class ParkingPayload(SensorPayload):
 
 class TrafficLightPayload(SensorPayload):
     current_phase: Literal["red", "yellow", "green", "blinking"]
+    vehicle_count: int = 0
     remaining_time_sec: int
     cycle_time_sec: int
     pedestrian_request: bool = False
@@ -80,7 +82,17 @@ class TrafficLightPayload(SensorPayload):
             raise ValueError("Traffic light timing values must be positive.")
         if self.remaining_time_sec > self.cycle_time_sec:
             raise ValueError("remaining_time_sec cannot exceed cycle_time_sec.")
+        if self.vehicle_count < 0:
+            raise ValueError("vehicle_count must be non-negative.")
         return self
+
+
+class EnvironmentalPayload(SensorPayload):
+    temperature_c: float
+    humidity_pct: float
+    pm2_5: float
+    pm10: float
+    co2_ppm: float
 
 
 class WeatherPayload(SensorPayload):
@@ -141,6 +153,11 @@ class TrafficLightSensor(BaseSensor):
     payload: TrafficLightPayload
 
 
+class EnvironmentalSensor(BaseSensor):
+    sensor_type: Literal[SensorType.ENVIRONMENTAL]
+    payload: EnvironmentalPayload
+
+
 class WeatherSensor(BaseSensor):
     sensor_type: Literal[SensorType.WEATHER]
     payload: WeatherPayload
@@ -166,6 +183,7 @@ SensorMessage = Annotated[
         RoadSurfaceSensor,
         ParkingSensor,
         TrafficLightSensor,
+        EnvironmentalSensor,
         WeatherSensor,
         SmartGridSensor,
         AirQualitySensor,
@@ -192,3 +210,7 @@ class SensorReadingInDB(BaseModel):
     recorded_at: datetime
     received_at: datetime
     created_at: datetime
+
+
+SmartEnergyPayload = SmartGridPayload
+SmartEnergySensor = SmartGridSensor

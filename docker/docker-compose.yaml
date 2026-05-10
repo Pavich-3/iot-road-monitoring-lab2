@@ -71,6 +71,25 @@ services:
       db_network:
       edge_hub:
 
+  hub:
+    container_name: hub
+    build: ../
+    command: ["python", "hub_main.py"]
+    depends_on:
+      - mqtt
+      - store
+    environment:
+      HUB_ENABLED: "true"
+      HUB_MQTT_HOST: "mqtt"
+      HUB_MQTT_PORT: 1883
+      HUB_SENSOR_READINGS_TOPIC: "sensor_readings_topic"
+      HUB_STORE_BATCH_URL: "http://store:8000/sensor_readings/batch"
+      HUB_BATCH_SIZE: 5
+      HUB_BUFFER_BACKEND: "memory"
+    networks:
+      mqtt_network:
+      edge_hub:
+
 
 networks:
   mqtt_network:

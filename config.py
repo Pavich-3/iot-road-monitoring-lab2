@@ -53,3 +53,17 @@ ENABLE_SYNTHETIC_SENSOR_GENERATOR = (
 SENSOR_GENERATOR_INTERVAL_SEC = (
     try_parse_float(os.environ.get("SENSOR_GENERATOR_INTERVAL_SEC")) or 2.0
 )
+
+# Configuration for isolated Hub service
+HUB_ENABLED = os.environ.get("HUB_ENABLED", "true").lower() == "true"
+HUB_MQTT_HOST = os.environ.get("HUB_MQTT_HOST") or MQTT_BROKER_HOST
+HUB_MQTT_PORT = try_parse_int(os.environ.get("HUB_MQTT_PORT")) or MQTT_BROKER_PORT
+HUB_SENSOR_READINGS_TOPIC = (
+    os.environ.get("HUB_SENSOR_READINGS_TOPIC") or SENSOR_READINGS_TOPIC
+)
+HUB_STORE_BATCH_URL = (
+    os.environ.get("HUB_STORE_BATCH_URL")
+    or "http://store:8000/sensor_readings/batch"
+)
+HUB_BATCH_SIZE = try_parse_int(os.environ.get("HUB_BATCH_SIZE")) or 5
+HUB_BUFFER_BACKEND = os.environ.get("HUB_BUFFER_BACKEND") or "memory"

@@ -1,0 +1,6 @@
+timestamp,intersection_id,current_phase,vehicle_count,pedestrian_request,latitude,longitude
+2026-05-09T08:00:00Z,A17-B03,green,24,false,50.451200,30.521900
+2026-05-09T08:02:00Z,A17-B03,yellow,18,true,50.451180,30.521880
+2026-05-09T08:04:00Z,C05-D11,red,31,false,50.450740,30.522610
+2026-05-09T08:06:00Z,C05-D11,green,27,false,50.450760,30.522640
+2026-05-09T08:08:00Z,E09-F04,red,35,true,50.449940,30.524010
